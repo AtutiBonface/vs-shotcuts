@@ -1,0 +1,11 @@
+sudo apt uninstall git
+sudo apt install git 
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+git init
+git remote add origin https://github.com/AtutiBonface/<repository_name>.git
+git remote -v
+git remote set-url origin https://<your-username>:<your-token>@github.com/AtutiBonface/Repository_name.git
+git add .
+git commit -m 'commit'
+git push origin master
