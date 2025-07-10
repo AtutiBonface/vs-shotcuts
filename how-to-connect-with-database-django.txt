@@ -1,0 +1,47 @@
+# CONNECTING DJANGO TO MARIADB USING PYMYSQL
+
+1. Install PyMySQL
+   pip install pymysql
+
+2. In your Django project's __init__.py file (same folder as settings.py), paste:
+   import pymysql
+   pymysql.install_as_MySQLdb()
+
+3. In settings.py, make sure 'os' is imported:
+   import os
+
+4. In settings.py, add this DATABASES config:
+
+   DATABASES = {
+       'default': {
+           'ENGINE': 'django.db.backends.mysql',
+           'NAME': os.environ.get('DJANGO_DB_NAME', 'stackloopDB'),
+           'USER': os.environ.get('DJANGO_DB_USER', 'stackloop'),
+           'PASSWORD': os.environ.get('DJANGO_DB_PASSWORD', 'stackloop'),
+           'HOST': os.environ.get('DJANGO_DB_HOST', 'localhost'),
+           'PORT': '3306',
+           'OPTIONS': {
+               'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+           },
+       }
+   }
+
+5. Start MariaDB service
+   sudo systemctl start mariadb
+
+6. Create database and user
+   sudo mariadb
+
+   Inside the MariaDB prompt, run:
+
+   CREATE DATABASE stackloopDB;
+   CREATE USER 'stackloop'@'localhost' IDENTIFIED BY 'stackloop';
+   GRANT ALL PRIVILEGES ON stackloopDB.* TO 'stackloop'@'localhost';
+   FLUSH PRIVILEGES;
+   EXIT;
+
+7. Run Django migrations
+   python manage.py migrate
+
+8. Run your Django app
+   python manage.py runserver
