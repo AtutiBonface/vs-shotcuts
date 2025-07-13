@@ -1,0 +1,110 @@
+# -------------------------------
+# WAIT-FOR-DB + DOCKER SETUP NOTES
+# -------------------------------
+
+## ✅ 1. wait-for-db.sh Script (place in django-app/)
+
+# File: django-app/wait-for-db.sh
+# Make sure to chmod +x this file before building Docker
+
+#!/bin/sh
+
+echo "Waiting for database at $DJANGO_DB_HOST..."
+
+while ! nc -z $DJANGO_DB_HOST 3306; do
+  echo "Waiting for MySQL on $DJANGO_DB_HOST:3306..."
+  sleep 2
+done
+
+echo "Database is up — starting Django"
+exec "$@"
+
+
+# -------------------------------
+# ✅ 2. Django Dockerfile
+# File: django-app/Dockerfile
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install netcat for wait-for-db
+RUN apt-get update && apt-get install -y netcat
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+# -------------------------------
+# ✅ 3. docker-compose.yml
+
+version: "3.9"
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MYSQL_DATABASE: stackloopDB
+      MYSQL_USER: stackloop
+      MYSQL_PASSWORD: stackloop
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  django:
+    build:
+      context: ./django-app
+    entrypoint: ["/app/wait-for-db.sh"]
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      - ./django-app:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DJANGO_DB_HOST=db
+      - DJANGO_DB_NAME=stackloopDB
+      - DJANGO_DB_USER=stackloop
+      - DJANGO_DB_PASSWORD=stackloop
+    depends_on:
+      - db
+
+  express:
+    build:
+      context: ./express-app
+    command: sh -c "npm install && npm run dev"
+    volumes:
+      - ./express-app:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  mariadb_data:
+
+# -------------------------------
+# ✅ 4. Commands to Run
+
+# Make script executable
+chmod +x django-app/wait-for-db.sh
+
+# Build Docker images
+docker compose build
+
+# Start services
+docker compose up
+
+# Stop services
+docker compose down
+
+# Rebuild if changes are made to Dockerfile or wait-for-db.sh
+docker compose build && docker compose up
+
+# Optional: see logs
+docker compose logs -f
+
+# -------------------------------
