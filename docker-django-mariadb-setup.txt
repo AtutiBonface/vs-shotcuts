@@ -36,6 +36,10 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+# Make sure the wait-for-db script is executable
+RUN chmod +x /app/wait-for-db.sh
+
+
 # -------------------------------
 # ✅ 3. docker-compose.yml
 
